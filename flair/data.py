@@ -132,7 +132,7 @@ class Dictionary:
         return Dictionary.load_from_file(name)
 
     def __str__(self):
-        tags = ', '.join(self.get_item_for_index(i) for i in range(min(len(self), 30)))
+        tags = ", ".join(self.get_item_for_index(i) for i in range(min(len(self), 30)))
         return f"Dictionary with {len(self)} tags: {tags}"
 
 
@@ -205,7 +205,7 @@ class DataPoint:
     def clear_embeddings(self, embedding_names: List[str] = None):
         pass
 
-    def add_label(self, label_type: str, value: str, score: float = 1.):
+    def add_label(self, label_type: str, value: str, score: float = 1.0):
 
         if label_type not in self.annotation_layers:
             self.annotation_layers[label_type] = [Label(value, score)]
@@ -214,7 +214,7 @@ class DataPoint:
 
         return self
 
-    def set_label(self, label_type: str, value: str, score: float = 1.):
+    def set_label(self, label_type: str, value: str, score: float = 1.0):
         self.annotation_layers[label_type] = [Label(value, score)]
 
         return self
@@ -223,7 +223,11 @@ class DataPoint:
         if label_type is None:
             return self.labels
 
-        return self.annotation_layers[label_type] if label_type in self.annotation_layers else []
+        return (
+            self.annotation_layers[label_type]
+            if label_type in self.annotation_layers
+            else []
+        )
 
     @property
     def labels(self) -> List[Label]:
@@ -268,12 +272,12 @@ class Token(DataPoint):
     """
 
     def __init__(
-            self,
-            text: str,
-            idx: int = None,
-            head_id: int = None,
-            whitespace_after: bool = True,
-            start_position: int = None,
+        self,
+        text: str,
+        idx: int = None,
+        head_id: int = None,
+        whitespace_after: bool = True,
+        start_position: int = None,
     ):
         super().__init__()
 
@@ -301,7 +305,8 @@ class Token(DataPoint):
         self.set_label(tag_type, tag_value, confidence)
 
     def get_tag(self, label_type):
-        if len(self.get_labels(label_type)) == 0: return Label('')
+        if len(self.get_labels(label_type)) == 0:
+            return Label("")
         return self.get_labels(label_type)[0]
 
     def get_tags_proba_dist(self, tag_type: str) -> List[Label]:
@@ -338,10 +343,13 @@ class Token(DataPoint):
                 if name in self._embeddings.keys():
                     del self._embeddings[name]
 
-    def get_each_embedding(self, embedding_names: Optional[List[str]] = None) -> torch.tensor:
+    def get_each_embedding(
+        self, embedding_names: Optional[List[str]] = None
+    ) -> torch.tensor:
         embeddings = []
         for embed in sorted(self._embeddings.keys()):
-            if embedding_names and embed not in embedding_names: continue
+            if embedding_names and embed not in embedding_names:
+                continue
             embed = self._embeddings[embed].to(flair.device)
             if (flair.embedding_storage_mode == "cpu") and embed.device != flair.device:
                 embed = embed.to(flair.device)
@@ -430,10 +438,8 @@ class Span(DataPoint):
     def __str__(self) -> str:
         ids = ",".join([str(t.idx) for t in self.tokens])
         label_string = " ".join([str(label) for label in self.labels])
-        labels = f'   [− Labels: {label_string}]' if self.labels is not None else ""
-        return (
-            'Span [{}]: "{}"{}'.format(ids, self.text, labels)
-        )
+        labels = f"   [− Labels: {label_string}]" if self.labels is not None else ""
+        return 'Span [{}]: "{}"{}'.format(ids, self.text, labels)
 
     def __repr__(self) -> str:
         ids = ",".join([str(t.idx) for t in self.tokens])
@@ -517,13 +523,13 @@ class Sentence(DataPoint):
         if type(token) is str:
             token = Token(token)
 
-        token.text = token.text.replace('\u200c', '')
-        token.text = token.text.replace('\u200b', '')
-        token.text = token.text.replace('\ufe0f', '')
-        token.text = token.text.replace('\ufeff', '')
+        token.text = token.text.replace("\u200c", "")
+        token.text = token.text.replace("\u200b", "")
+        token.text = token.text.replace("\ufe0f", "")
+        token.text = token.text.replace("\ufeff", "")
 
         # data with zero-width characters cannot be handled
-        if token.text.strip() == '':
+        if token.text.strip() == "":
             return
 
         self.tokens.append(token)
@@ -572,9 +578,9 @@ class Sentence(DataPoint):
                 starts_new_span = True
 
             if (
-                    previous_tag_value[0:2] in ["S-"]
-                    and previous_tag_value[2:] != tag_value[2:]
-                    and in_span
+                previous_tag_value[0:2] in ["S-"]
+                and previous_tag_value[2:] != tag_value[2:]
+                and in_span
             ):
                 starts_new_span = True
 
@@ -585,8 +591,11 @@ class Sentence(DataPoint):
                     span = Span(current_span)
                     span.add_label(
                         label_type=label_type,
-                        value=sorted(tags.items(), key=lambda k_v: k_v[1], reverse=True)[0][0],
-                        score=span_score)
+                        value=sorted(
+                            tags.items(), key=lambda k_v: k_v[1], reverse=True
+                        )[0][0],
+                        score=span_score,
+                    )
                     spans.append(span)
 
                 current_span = []
@@ -607,8 +616,11 @@ class Sentence(DataPoint):
                 span = Span(current_span)
                 span.add_label(
                     label_type=label_type,
-                    value=sorted(tags.items(), key=lambda k_v: k_v[1], reverse=True)[0][0],
-                    score=span_score)
+                    value=sorted(tags.items(), key=lambda k_v: k_v[1], reverse=True)[0][
+                        0
+                    ],
+                    score=span_score,
+                )
                 spans.append(span)
 
         return spans
@@ -628,7 +640,8 @@ class Sentence(DataPoint):
     def get_embedding(self, names: Optional[List[str]] = None) -> torch.tensor:
         embeddings = []
         for embed in sorted(self._embeddings.keys()):
-            if names and embed not in names: continue
+            if names and embed not in names:
+                continue
             embedding = self._embeddings[embed]
             embeddings.append(embedding)
 
@@ -790,10 +803,18 @@ class Sentence(DataPoint):
         tokenized_string = self.to_tokenized_string()
 
         # add Sentence labels to output if they exist
-        sentence_labels = f"  − Sentence-Labels: {self.annotation_layers}" if self.annotation_layers != {} else ""
+        sentence_labels = (
+            f"  − Sentence-Labels: {self.annotation_layers}"
+            if self.annotation_layers != {}
+            else ""
+        )
 
         # add Token labels to output if they exist
-        token_labels = f'  − Token-Labels: "{tagged_string}"' if tokenized_string != tagged_string else ""
+        token_labels = (
+            f'  − Token-Labels: "{tagged_string}"'
+            if tokenized_string != tagged_string
+            else ""
+        )
 
         return f'Sentence: "{tokenized_string}"   [− Tokens: {len(self)}{token_labels}{sentence_labels}]'
 
@@ -817,10 +838,18 @@ class Sentence(DataPoint):
         tokenized_string = self.to_tokenized_string()
 
         # add Sentence labels to output if they exist
-        sentence_labels = f"  − Sentence-Labels: {self.annotation_layers}" if self.annotation_layers != {} else ""
+        sentence_labels = (
+            f"  − Sentence-Labels: {self.annotation_layers}"
+            if self.annotation_layers != {}
+            else ""
+        )
 
         # add Token labels to output if they exist
-        token_labels = f'  − Token-Labels: "{tagged_string}"' if tokenized_string != tagged_string else ""
+        token_labels = (
+            f'  − Token-Labels: "{tagged_string}"'
+            if tokenized_string != tagged_string
+            else ""
+        )
 
         return f'Sentence: "{tokenized_string}"   [− Tokens: {len(self)}{token_labels}{sentence_labels}]'
 
@@ -848,7 +877,6 @@ class Sentence(DataPoint):
 
 
 class Image(DataPoint):
-
     def __init__(self, data=None, imageURL=None):
         super().__init__()
 
@@ -912,11 +940,11 @@ class FlairDataset(Dataset):
 
 class Corpus:
     def __init__(
-            self,
-            train: FlairDataset,
-            dev: FlairDataset = None,
-            test: FlairDataset = None,
-            name: str = "corpus",
+        self,
+        train: FlairDataset,
+        dev: FlairDataset = None,
+        test: FlairDataset = None,
+        name: str = "corpus",
     ):
         # set name
         self.name: str = name
@@ -954,7 +982,13 @@ class Corpus:
     def test(self) -> FlairDataset:
         return self._test
 
-    def downsample(self, percentage: float = 0.1, downsample_train=True, downsample_dev=True, downsample_test=True):
+    def downsample(
+        self,
+        percentage: float = 0.1,
+        downsample_train=True,
+        downsample_dev=True,
+        downsample_test=True,
+    ):
 
         if downsample_train:
             self._train = self._downsample_to_proportion(self.train, percentage)
@@ -1023,7 +1057,7 @@ class Corpus:
         tokens = []
         for token, freq in tokens_and_frequencies:
             if (min_freq != -1 and freq < min_freq) or (
-                    max_tokens != -1 and len(tokens) == max_tokens
+                max_tokens != -1 and len(tokens) == max_tokens
             ):
                 break
             tokens.append(token)
@@ -1042,7 +1076,7 @@ class Corpus:
         return splits[0]
 
     def obtain_statistics(
-            self, label_type: str = None, pretty_print: bool = True
+        self, label_type: str = None, pretty_print: bool = True
     ) -> dict:
         """
         Print statistics about the class distribution (only labels of sentences are taken into account) and sentence
@@ -1137,7 +1171,11 @@ class Corpus:
             for sentence in batch:
 
                 # check if sentence itself has labels
-                labels = sentence.get_labels(label_type) if label_type is not None else sentence.labels
+                labels = (
+                    sentence.get_labels(label_type)
+                    if label_type is not None
+                    else sentence.labels
+                )
 
                 for label in labels:
                     label_dictionary.add_item(label.value)
@@ -1279,7 +1317,7 @@ def build_japanese_tokenizer(tokenizer: str = "MeCab"):
         log.warning("-" * 100)
         log.warning('ATTENTION! The library "konoha" is not installed!')
         log.warning(
-            'To use Japanese tokenizer, please first install with the following steps:'
+            "To use Japanese tokenizer, please first install with the following steps:"
         )
         log.warning(
             '- Install mecab with "sudo apt install mecab libmecab-dev mecab-ipadic"'
@@ -1299,9 +1337,9 @@ def build_japanese_tokenizer(tokenizer: str = "MeCab"):
         tokens: List[Token] = []
         words: List[str] = []
 
-        sentences = sentence_tokenizer.tokenize(text)
+        sentences = sentence_tokenizer.tokens(text)
         for sentence in sentences:
-            konoha_tokens = word_tokenizer.tokenize(sentence)
+            konoha_tokens = word_tokenizer.tokens(sentence)
             words.extend(list(map(str, konoha_tokens)))
 
         # determine offsets for whitespace_after field
@@ -1424,6 +1462,7 @@ def build_spacy_tokenizer(model) -> Callable[[str], List[Token]]:
 def randomly_split_into_two_datasets(dataset, length_of_first):
 
     import random
+
     indices = [i for i in range(len(dataset))]
     random.shuffle(indices)
 
@@ -1433,3 +1472,137 @@ def randomly_split_into_two_datasets(dataset, length_of_first):
     second_dataset.sort()
 
     return [Subset(dataset, first_dataset), Subset(dataset, second_dataset)]
+
+
+class Tokenizer(object):
+    r"""An abstract class representing a :class:`Tokenizer`.
+
+    Tokenizers are used to represent algorithms and models to split plain text into
+    individual tokens / words. All subclasses should overwrite :meth:`tokenize`, which
+    splits the given plain text into tokens, and :meth:`id`, returning a unique identifier
+    representing the tokenizer's configuration.
+    """
+
+    def tokenize(self, text: str) -> List[Token]:
+        raise NotImplementedError()
+
+    def id(self) -> str:
+        raise NotImplementedError()
+
+
+class SpacyTokenizer(Tokenizer):
+    """
+    Implementation of :class:`Tokenizer`, using the implementation from Spacy.
+
+    :param model a Spacy V2 model
+    """
+
+    def __init__(self, model):
+        try:
+            from spacy.language import Language
+        except ImportError:
+            raise ImportError(
+                "Please install Spacy v2.0 or better before using the Spacy tokenizer, otherwise you can use segtok_tokenizer as advanced tokenizer."
+            )
+
+        self.model: Language = model
+
+    def tokenize(self, text: str) -> List[Token]:
+        from spacy.tokens.doc import Doc
+        from spacy.tokens.token import Token as SpacyToken
+
+        doc: Doc = self.model.make_doc(text)
+        previous_token = None
+        tokens: List[Token] = []
+        for word in doc:
+            word: SpacyToken = word
+            token = Token(
+                text=word.text, start_position=word.idx, whitespace_after=True
+            )
+            tokens.append(token)
+
+            if (previous_token is not None) and (
+                token.start_pos == previous_token.start_pos + len(previous_token.text)
+            ):
+                previous_token.whitespace_after = False
+
+            previous_token = token
+
+        return tokens
+
+    def id(self) -> str:
+        return (
+            self.__class__.__name__
+            + "_"
+            + self.model.meta["name"]
+            + "_"
+            + self.model.meta["version"]
+        )
+
+
+class SegTokTokenizer(Tokenizer):
+    """
+        Tokenizer using segtok, a third party library dedicated to rules-based Indo-European languages.
+
+        For further details see: https://github.com/fnl/segtok
+    """
+
+    def tokenize(self, text: str) -> List[Token]:
+        tokens: List[Token] = []
+        words: List[str] = []
+
+        sentences = split_single(text)
+        for sentence in sentences:
+            contractions = split_contractions(word_tokenizer(sentence))
+            words.extend(contractions)
+
+        words = list(filter(None, words))
+
+        # determine offsets for whitespace_after field
+        index = text.index
+        current_offset = 0
+        previous_word_offset = -1
+        previous_token = None
+        for word in words:
+            try:
+                word_offset = index(word, current_offset)
+                start_position = word_offset
+            except:
+                word_offset = previous_word_offset + 1
+                start_position = (
+                    current_offset + 1 if current_offset > 0 else current_offset
+                )
+
+            if word:
+                token = Token(
+                    text=word, start_position=start_position, whitespace_after=True
+                )
+                tokens.append(token)
+
+            if (previous_token is not None) and word_offset - 1 == previous_word_offset:
+                previous_token.whitespace_after = False
+
+            current_offset = word_offset + len(word)
+            previous_word_offset = current_offset - 1
+            previous_token = token
+
+        return tokens
+
+    def id(self) -> str:
+        return self.__class__.__name__
+
+
+if __name__ == "__main__":
+    text = "This is a example text"
+
+    import spacy
+
+    model = spacy.load("en_core_sci_sm")
+
+    spacy_tokenizer = SpacyTokenizer(model)
+    print(spacy_tokenizer.id())
+    print(spacy_tokenizer.tokenize(text))
+
+    segtok_tokenizer = SegTokTokenizer()
+    print(segtok_tokenizer.id())
+    print(segtok_tokenizer.tokenize(text))
