@@ -1,66 +1,115 @@
-from typing import List
-
-import flair.datasets
-from flair.data import Corpus
+import flair
+import argparse
+import json
+import os
+from flair.datasets import ColumnDataset
+from flair.data import Corpus, FlairDataset, Sentence, Token
 from flair.embeddings import (
-    TokenEmbeddings,
-    WordEmbeddings,
-    StackedEmbeddings,
-    FlairEmbeddings,
-    CharacterEmbeddings,
+  WordEmbeddings,
+  StackedEmbeddings,
+  FlairEmbeddings,
+  TransformerWordEmbeddings
 )
-from flair.training_utils import EvaluationMetric
+import subprocess
 from flair.visual.training_curves import Plotter
-
-# 1. get the corpus
-corpus: Corpus = flair.datasets.UD_ENGLISH()
-print(corpus)
-
-# 2. what tag do we want to predict?
-tag_type = "upos"
-
-# 3. make the tag dictionary from the corpus
-tag_dictionary = corpus.make_tag_dictionary(tag_type=tag_type)
-print(tag_dictionary.idx2item)
-
-# initialize embeddings
-embedding_types: List[TokenEmbeddings] = [
-    WordEmbeddings("glove"),
-    # comment in this line to use character embeddings
-    # CharacterEmbeddings(),
-    # comment in these lines to use contextual string embeddings
-    #
-    # FlairEmbeddings('news-forward'),
-    #
-    # FlairEmbeddings('news-backward'),
-]
-
-embeddings: StackedEmbeddings = StackedEmbeddings(embeddings=embedding_types)
-
-# initialize sequence tagger
+from flair.trainers import ModelTrainer
 from flair.models import SequenceTagger
 
-tagger: SequenceTagger = SequenceTagger(
-    hidden_size=256,
-    embeddings=embeddings,
-    tag_dictionary=tag_dictionary,
-    tag_type=tag_type,
-    use_crf=True,
-)
+embeddings_map = {
+  "glove": WordEmbeddings,
+  "news-forward": FlairEmbeddings,
+  "news-backward": FlairEmbeddings,
+  "crawl": WordEmbeddings,
+  "twitter": WordEmbeddings,
+  'transformers': TransformerWordEmbeddings
+}
 
-# initialize trainer
-from flair.trainers import ModelTrainer
 
-trainer: ModelTrainer = ModelTrainer(tagger, corpus)
+def train(params):
+  base_path = os.path.join(params["model_dir"], params["model_tag"])
+  os.makedirs(base_path, exist_ok=True)
+  # 1. get the corpus
 
-trainer.train(
-    "resources/taggers/example-ner",
-    learning_rate=0.1,
-    mini_batch_size=32,
-    max_epochs=20,
-    shuffle=False,
-)
+  if len(params["filenames"]["train"])>1:
+    train_file = os.path.join(base_path, "train.txt")
+    p = subprocess.run("cat {} > {}".format(" ".join(params["filenames"]["train"]),train_file), shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+    print(p.stdout)
 
-plotter = Plotter()
-plotter.plot_training_curves("resources/taggers/example-ner/loss.tsv")
-plotter.plot_weights("resources/taggers/example-ner/weights.txt")
+  else:
+    train_file = params["filenames"]["train"][0]
+
+
+  train  =  ColumnDataset(path_to_column_file=train_file, tag_to_bioes="ner", column_name_map={0:"text", 1: "ner"})
+  dev = ColumnDataset(path_to_column_file=params["filenames"]["dev"], tag_to_bioes="ner", column_name_map={0:"text", 1: "ner"})
+  test = ColumnDataset(path_to_column_file=params["filenames"]["test"], tag_to_bioes="ner", column_name_map={0:"text", 1: "ner"})
+
+  corpus: Corpus = Corpus(train, dev, test)
+  print(corpus)
+
+  # 2. what tag do we want to predict?
+  tag_type = 'ner'
+
+  # 3. make the tag dictionary from the corpus
+  tag_dictionary = corpus.make_tag_dictionary(tag_type=tag_type)
+  print(tag_dictionary.idx2item)
+
+  embedding_types = []
+
+  for emb in params["embeddings"]:
+    if emb=="transformers":
+      embedding_types.append(embeddings_map[emb](params["transformer_path"]))
+    else:
+      embedding_types.append(embeddings_map[emb](emb))
+
+  embeddings = StackedEmbeddings(embeddings=embedding_types)
+  print(embeddings)
+
+  # initialize sequence tagger
+
+
+  tagger = SequenceTagger(hidden_size=params["hidden_size"],
+                          embeddings=embeddings,
+                          tag_dictionary=tag_dictionary,
+                          tag_type=tag_type,
+                          use_rnn=params["use_rnn"],
+                          rnn_layers=params["rnn_layers"],
+                          use_crf=params["use_crf"],
+                          )
+
+  with open(os.path.join(base_path, 'config.json'), "w") as cfg:
+    json.dump(params, cfg)
+  # initialize trainer
+
+  if os.path.exists(os.path.join(base_path, "checkpoint.pt")):
+    trainer: ModelTrainer = ModelTrainer.load_checkpoint(os.path.join(base_path, "checkpoint.pt"),
+                                                         corpus=corpus)
+    max_epochs = params["max_epochs"] - trainer.epoch
+
+  else:
+    trainer: ModelTrainer = ModelTrainer(tagger, corpus)
+    max_epochs = params["max_epochs"]
+
+  trainer.train(base_path,
+                learning_rate=params["learning_rate"],
+                mini_batch_size=params["mini_batch_size"],
+                max_epochs=max_epochs,
+                save_final_model=params["save_model"],
+                train_with_dev=params["train_with_dev"],
+                anneal_factor=params["anneal_factor"],
+                checkpoint=True)
+
+  plotter = Plotter()
+  plotter.plot_training_curves(os.path.join(base_path, "loss.tsv"))
+  plotter.plot_weights(os.path.join(base_path, 'weights.txt'))
+
+
+if __name__ == "__main__":
+  arg_parser = argparse.ArgumentParser()
+  arg_parser.add_argument("--config", default="config.json")
+  args = arg_parser.parse_args()
+
+  with open(args.config) as cfg:
+    params = json.load(cfg)
+
+  print(params)
+  train(params)
