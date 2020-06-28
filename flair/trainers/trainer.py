@@ -157,7 +157,7 @@ class ModelTrainer:
         # cast string to Path
         if type(base_path) is str:
             base_path = Path(base_path)
-        if model_path is not None and model_path is str:
+        if model_path is not None and type(model_path) is str:
             model_path = Path(model_path)
         elif model_path is None:
             model_path=base_path

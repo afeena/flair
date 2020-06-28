@@ -94,7 +94,7 @@ def train(params):
   if log_path is not None:
     log_path = os.path.join(params["log_path"], params["model_tag"])
     os.makedirs(log_path, exist_ok=True)
-
+  print(log_path)
   trainer.train(log_path,
                 model_path=model_path,
                 learning_rate=params["learning_rate"],
