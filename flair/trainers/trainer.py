@@ -62,6 +62,7 @@ class ModelTrainer:
     def train(
         self,
         base_path: Union[Path, str],
+        model_path: Union[Path, str] = None,
         learning_rate: float = 0.1,
         mini_batch_size: int = 32,
         mini_batch_chunk_size: int = None,
@@ -156,6 +157,10 @@ class ModelTrainer:
         # cast string to Path
         if type(base_path) is str:
             base_path = Path(base_path)
+        if model_path is not None and model_path is str:
+            model_path = Path(model_path)
+        elif model_path is None:
+            model_path=base_path
 
         log_handler = add_file_handler(log, base_path / "training.log")
 
@@ -175,6 +180,7 @@ class ModelTrainer:
         log.info(f' - batch_growth_annealing: "{batch_growth_annealing}"')
         log_line(log)
         log.info(f'Model training base path: "{base_path}"')
+        log.info(f'Model checkpoint base path: "{model_path}"')
         log_line(log)
         log.info(f"Device: {flair.device}")
         log_line(log)
@@ -286,17 +292,17 @@ class ModelTrainer:
                 if (
                     (anneal_with_restarts or anneal_with_prestarts)
                     and learning_rate != previous_learning_rate
-                    and (base_path / "best-model.pt").exists()
+                    and (model_path / "best-model.pt").exists()
                 ):
                     if anneal_with_restarts:
                         log.info("resetting to best model")
                         self.model.load_state_dict(
-                            self.model.load(base_path / "best-model.pt").state_dict()
+                            self.model.load(model_path / "best-model.pt").state_dict()
                         )
                     if anneal_with_prestarts:
                         log.info("resetting to pre-best model")
                         self.model.load_state_dict(
-                            self.model.load(base_path / "pre-best-model.pt").state_dict()
+                            self.model.load(model_path / "pre-best-model.pt").state_dict()
                         )
 
                 previous_learning_rate = learning_rate
@@ -536,7 +542,7 @@ class ModelTrainer:
 
                 # if checkpoint is enabled, save model at each epoch
                 if checkpoint and not param_selection_mode:
-                    self.save_checkpoint(base_path / "checkpoint.pt")
+                    self.save_checkpoint(model_path / "checkpoint.pt")
 
                 # if we use dev data, remember best model based on dev evaluation score
                 if (
@@ -546,17 +552,17 @@ class ModelTrainer:
                     and bad_epochs == 0
                 ):
                     print("saving best model")
-                    self.model.save(base_path / "best-model.pt")
+                    self.model.save(model_path / "best-model.pt")
 
                     if anneal_with_prestarts:
                         current_state_dict = self.model.state_dict()
                         self.model.load_state_dict(last_epoch_model_state_dict)
-                        self.model.save(base_path / "pre-best-model.pt")
+                        self.model.save(model_path / "pre-best-model.pt")
                         self.model.load_state_dict(current_state_dict)
 
             # if we do not use dev data for model selection, save final model
             if save_final_model and not param_selection_mode:
-                self.model.save(base_path / "final-model.pt")
+                self.model.save(model_path / "final-model.pt")
 
         except KeyboardInterrupt:
             log_line(log)
@@ -567,12 +573,12 @@ class ModelTrainer:
 
             if not param_selection_mode:
                 log.info("Saving model ...")
-                self.model.save(base_path / "final-model.pt")
+                self.model.save(model_path / "final-model.pt")
                 log.info("Done.")
 
         # test best model if test data is present
         if self.corpus.test:
-            final_score = self.final_test(base_path, mini_batch_chunk_size, num_workers)
+            final_score = self.final_test(model_path, mini_batch_chunk_size, num_workers)
         else:
             final_score = 0
             log.info("Test data not provided setting final score to 0")
