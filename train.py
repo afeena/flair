@@ -84,11 +84,11 @@ def train(params):
   if os.path.exists(os.path.join(model_path, "checkpoint.pt")):
     trainer: ModelTrainer = ModelTrainer.load_checkpoint(os.path.join(model_path, "checkpoint.pt"),
                                                          corpus=corpus)
-    max_epochs = params["max_epochs"] - trainer.epoch
-
+    
   else:
     trainer: ModelTrainer = ModelTrainer(tagger, corpus)
-    max_epochs = params["max_epochs"]
+
+  max_epochs = params["max_epochs"]
 
   log_path = params["log_path"] if "log_path" in params else None
   if log_path is not None:
@@ -103,7 +103,7 @@ def train(params):
                 save_final_model=params["save_model"],
                 train_with_dev=params["train_with_dev"],
                 anneal_factor=params["anneal_factor"],
-                checkpoint=True)
+                checkpoint=False)
 
   plotter = Plotter()
   plotter.plot_training_curves(os.path.join(log_path, "loss.tsv"))
