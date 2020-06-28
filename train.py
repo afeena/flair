@@ -31,7 +31,7 @@ def train(params):
   # 1. get the corpus
 
   if len(params["filenames"]["train"]) > 1:
-    train_file = os.path.join(base_path, "train.txt")
+    train_file = os.path.join(model_path, "train.txt")
     p = subprocess.run("cat {} > {}".format(" ".join(params["filenames"]["train"]), train_file), shell=True,
                        stdout=subprocess.PIPE, universal_newlines=True)
     print(p.stdout)
