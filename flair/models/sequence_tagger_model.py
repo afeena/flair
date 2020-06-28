@@ -416,6 +416,7 @@ class SequenceTagger(flair.nn.Model):
                                 embedding_storage_mode=embedding_storage_mode,
                                 mini_batch_size=mini_batch_size,
                                 label_name='predicted',
+                                all_tag_prob=True,
                                 return_loss=True)
             eval_loss += loss
             batch_no += 1
@@ -459,7 +460,11 @@ class SequenceTagger(flair.nn.Model):
                         for span in predicted_spans:
                             if token in span:
                                 predicted_tag = 'B-' + span.tag if token == span[0] else 'I-' + span.tag
+                                dist = token.get_tags_proba_dist(span.tag)
+                                print(dist)
                         tags_pred.append(predicted_tag)
+
+
 
                         lines.append(f'{token.text} {gold_tag} {predicted_tag}\n')
                     lines.append('\n')
