@@ -379,10 +379,10 @@ class ModelTrainer:
                         )
                         batch_time = 0
                         iteration = self.epoch * total_number_of_batches + batch_no
-                        if not param_selection_mode:
-                            weight_extractor.extract_weights(
-                                self.model.state_dict(), iteration
-                            )
+                        # if not param_selection_mode:
+                        #     weight_extractor.extract_weights(
+                        #         self.model.state_dict(), iteration
+                        #     )
 
                 train_loss /= seen_batches
 
