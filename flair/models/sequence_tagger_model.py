@@ -290,6 +290,7 @@ class SequenceTagger(flair.nn.Model):
             loss_weights=weights,
             reproject_embeddings=reproject_embeddings,
         )
+
         model.load_state_dict(state["state_dict"])
         return model
 
