@@ -107,7 +107,6 @@ def train(params):
 
   plotter = Plotter()
   plotter.plot_training_curves(os.path.join(log_path, "loss.tsv"))
-  plotter.plot_weights(os.path.join(log_path, 'weights.txt'))
 
 
 if __name__ == "__main__":
