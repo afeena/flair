@@ -68,9 +68,10 @@ class Model(torch.nn.Module):
         :param model_file: the model file
         """
         model_state = self._get_state_dict()
-
-        torch.save(model_state, str(model_file), pickle_protocol=4,
-                   _use_new_zipfile_serialization=True)
+        import gzip
+        with gzip.open(str(model_file), "wb") as gf:
+            torch.save(model_state, gf, pickle_protocol=4,
+                       _use_new_zipfile_serialization=True)
 
     @classmethod
     def load(cls, model: Union[str, Path]):
@@ -85,8 +86,10 @@ class Model(torch.nn.Module):
             warnings.filterwarnings("ignore")
             # load_big_file is a workaround by https://github.com/highway11git to load models on some Mac/Windows setups
             # see https://github.com/zalandoresearch/flair/issues/351
-            f = file_utils.load_big_file(str(model_file))
-            state = torch.load(f, map_location='cpu')
+            import gzip
+            with gzip.open(str(model_file)) as gf:
+                f = file_utils.load_big_file(gf)
+                state = torch.load(f, map_location='cpu')
 
         model = cls._init_model_with_state_dict(state)
 
