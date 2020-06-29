@@ -219,7 +219,7 @@ class ModelTrainer:
         # prepare loss logging file and set up header
         loss_txt = init_output_file(base_path, "loss.tsv")
 
-        weight_extractor = WeightExtractor(base_path)
+        weight_extractor = WeightExtractor(model_path)
 
         optimizer: torch.optim.Optimizer = self.optimizer(
             self.model.parameters(), lr=learning_rate, **kwargs
