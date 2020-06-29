@@ -87,8 +87,8 @@ class Model(torch.nn.Module):
             # see https://github.com/zalandoresearch/flair/issues/351
             import gzip
             with gzip.open(str(model_file), compresslevel=5) as gf:
-                f = file_utils.load_big_file(gf)
-                state = torch.load(f, map_location='cpu')
+                #f = file_utils.load_big_file(gf)
+                state = torch.load(gf, map_location='cpu')
 
         model = cls._init_model_with_state_dict(state)
 
