@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Union, Optional, Callable, Dict
+from typing import List, Union, Optional, Dict
 
 import numpy as np
 import torch
@@ -12,9 +12,9 @@ from torch.utils.data.dataset import Dataset
 from tqdm import tqdm
 
 import flair.nn
-from flair.data import Dictionary, Sentence, Token, Label, space_tokenizer, DataPoint
-from flair.datasets import SentenceDataset, StringDataset, DataLoader
-from flair.embeddings import TokenEmbeddings, StackedEmbeddings
+from flair.data import Dictionary, Sentence, Label
+from flair.datasets import SentenceDataset, DataLoader
+from flair.embeddings import TokenEmbeddings
 from flair.file_utils import cached_path, unzip_file
 from flair.training_utils import Metric, Result, store_embeddings
 
@@ -1134,7 +1134,7 @@ class SequenceTagger(flair.nn.Model):
             [aws_resource_path_v04, "release-fr-ner-0", "fr-ner-wikiner-0.4.pt"]
         )
         model_map["nl-ner"] = "/".join(
-            [hu_path, "dutch-ner_0", "nl-ner-bert-conll02-v0.5.pt"]
+            [hu_path, "dutch-ner_0", "nl-ner-bert-conll02-v0.5b.pt"]
         )
         model_map["nl-ner-rnn"] = "/".join(
             [hu_path, "dutch-ner-flair-0", "nl-ner-conll02-v0.5.pt"]

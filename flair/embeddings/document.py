@@ -6,8 +6,6 @@ import torch
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from transformers import BertTokenizer, AlbertTokenizer, AutoTokenizer, AutoConfig, AutoModel
 
-from sentence_transformers import SentenceTransformer
-
 import flair
 from flair.data import Sentence
 from flair.embeddings.base import Embeddings, ScalarMix
@@ -51,6 +49,11 @@ class TransformerDocumentEmbeddings(DocumentEmbeddings):
         :param use_scalar_mix: If True, uses a scalar mix of layers as embedding
         """
         super().__init__()
+
+        # temporary fix to disable tokenizer parallelism warning
+        # (see https://stackoverflow.com/questions/62691279/how-to-disable-tokenizers-parallelism-true-false-warning)
+        import os
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
         # load tokenizer and transformer model
         self.tokenizer = AutoTokenizer.from_pretrained(model)
@@ -110,7 +113,9 @@ class TransformerDocumentEmbeddings(DocumentEmbeddings):
                 # tokenize and truncate to 512 subtokens (TODO: check better truncation strategies)
                 subtokenized_sentence = self.tokenizer.encode(sentence.to_tokenized_string(),
                                                               add_special_tokens=True,
-                                                              max_length=512)
+                                                              max_length=512,
+                                                              truncation=True,
+                                                              )
                 subtokenized_sentences.append(
                     torch.tensor(subtokenized_sentence, dtype=torch.long, device=flair.device))
 
@@ -532,6 +537,18 @@ class SentenceTransformerDocumentEmbeddings(DocumentEmbeddings):
         :param convert_to_numpy: bool whether the encode() returns a numpy array or PyTorch tensor
         """
         super().__init__()
+
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ModuleNotFoundError:
+            log.warning("-" * 100)
+            log.warning('ATTENTION! The library "sentence-transformers" is not installed!')
+            log.warning(
+                'To use Sentence Transformers, please first install with "pip install sentence-transformers"'
+            )
+            log.warning("-" * 100)
+            pass
+
         self.model = SentenceTransformer(model)
         self.name = 'sentence-transformers-' + str(model)
         self.batch_size = batch_size

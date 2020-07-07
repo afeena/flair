@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Union, Callable, Dict, Optional
+from typing import List, Union, Dict, Optional
 
 import torch
 import torch.nn as nn
@@ -11,12 +11,11 @@ import numpy as np
 import sklearn.metrics as metrics
 import flair.nn
 import flair.embeddings
-from flair.data import Dictionary, Sentence, Label, Token, space_tokenizer, DataPoint
-from flair.datasets import SentenceDataset, StringDataset, DataLoader
+from flair.data import Dictionary, Sentence, Label, DataPoint
+from flair.datasets import SentenceDataset, DataLoader
 from flair.file_utils import cached_path
 from flair.training_utils import (
     convert_labels_to_one_hot,
-    Metric,
     Result,
     store_embeddings,
 )
@@ -231,7 +230,7 @@ class TextClassifier(flair.nn.Model):
 
                 for (sentence, labels) in zip(batch, predicted_labels):
                     for label in labels:
-                        if self.multi_label:
+                        if self.multi_label or multi_class_prob:
                             sentence.add_label(label_name, label.value, label.score)
                         else:
                             sentence.set_label(label_name, label.value, label.score)
@@ -313,6 +312,10 @@ class TextClassifier(flair.nn.Model):
                     y_pred.append(y_pred_instance.tolist())
 
                 store_embeddings(batch, embedding_storage_mode)
+
+            # remove predicted labels
+            for sentence in sentences:
+                sentence.annotation_layers['predicted'] = []
 
             if out_path is not None:
                 with open(out_path, "w", encoding="utf-8") as outfile:
@@ -473,7 +476,7 @@ class TextClassifier(flair.nn.Model):
         
         #Communicative Functions Model
         model_map["communicative-functions"] = "/".join(
-            [hu_path, "communicative-functions", "communicative-functions.pt"]
+            [hu_path, "comfunc", "communicative-functions-v0.5b.pt"]
         )
 
         cache_dir = Path("models")
