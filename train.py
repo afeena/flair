@@ -21,7 +21,8 @@ embeddings_map = {
   "news-backward": FlairEmbeddings,
   "crawl": WordEmbeddings,
   "twitter": WordEmbeddings,
-  'transformers': TransformerWordEmbeddings
+  'transformers': TransformerWordEmbeddings,
+  "bert-base-german-dbmdz-cased":TransformerWordEmbeddings
 }
 
 
@@ -61,7 +62,10 @@ def train(params):
     if emb == "transformers":
       embedding_types.append(embeddings_map[emb](params["transformer_path"]))
     else:
-      embedding_types.append(embeddings_map[emb](emb))
+      if type(embeddings_map[emb]) is TransformerWordEmbeddings:
+        embedding_types.append(embeddings_map[emb](emb, cache_dir=os.getcwd()))
+      else:
+        embedding_types.append(embeddings_map[emb](emb))
 
   embeddings = StackedEmbeddings(embeddings=embedding_types)
   print(embeddings)
