@@ -462,7 +462,7 @@ class SequenceTagger(flair.nn.Model):
                             if token in span:
                                 predicted_tag = 'B-' + span.tag if token == span[0] else 'I-' + span.tag
 
-                        print(token.get_tags_proba_dist())
+                        print(token.tags_proba_dist)
                         tags_pred.append(predicted_tag)
 
 
