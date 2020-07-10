@@ -464,7 +464,7 @@ class SequenceTagger(flair.nn.Model):
 
                         tags_pred.append(predicted_tag)
 
-                        lines.append(f'{token.text} {gold_tag} {predicted_tag} {token.get_tag("predicted").score}\n')
+                        lines.append(f'{token.text} {gold_tag} {token.get_tag("ner")} {predicted_tag} {token.get_tag("predicted").score}\n')
                     lines.append('\n')
 
                 y_true.append(tags_gold)
