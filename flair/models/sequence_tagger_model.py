@@ -463,7 +463,10 @@ class SequenceTagger(flair.nn.Model):
                 predicted_tag = 'B-' + span.tag if token == span[0] else 'I-' + span.tag
 
             tags_pred.append(predicted_tag)
-            gold_score = [x.score for x in token.get_tags_proba_dist("predicted") if x.value == gold_tag][0]
+            try:
+              gold_score = [x.score for x in token.get_tags_proba_dist("predicted") if x.value == gold_tag][0]
+            except IndexError:
+              print(gold_tag, token.get_tags_proba_dist("predicted"))
             pred_score = [x.score for x in token.get_tags_proba_dist("predicted") if x.value == predicted_tag][0]
             lines.append(f'{token.text} {gold_tag} {gold_score} {predicted_tag} {pred_score}\n')
           lines.append('\n')
