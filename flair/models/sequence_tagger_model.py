@@ -298,7 +298,7 @@ class SequenceTagger(flair.nn.Model):
           self,
           sentences: Union[List[Sentence], Sentence],
           mini_batch_size=32,
-          all_tag_prob: bool = False,
+          all_tag_prob: bool = True,
           verbose: bool = False,
           label_name: Optional[str] = None,
           return_loss=False,
@@ -465,9 +465,10 @@ class SequenceTagger(flair.nn.Model):
             tags_pred.append(predicted_tag)
             try:
               gold_score = [x.score for x in token.get_tags_proba_dist("predicted") if x.value == gold_tag][0]
+              pred_score = [x.score for x in token.get_tags_proba_dist("predicted") if x.value == predicted_tag][0]
             except IndexError:
               print(gold_tag, token.get_tags_proba_dist("predicted"))
-            pred_score = [x.score for x in token.get_tags_proba_dist("predicted") if x.value == predicted_tag][0]
+
             lines.append(f'{token.text} {gold_tag} {gold_score} {predicted_tag} {pred_score}\n')
           lines.append('\n')
 
