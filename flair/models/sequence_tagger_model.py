@@ -469,7 +469,7 @@ class SequenceTagger(flair.nn.Model):
             except IndexError:
               print(gold_tag, token.get_tags_proba_dist("predicted"))
 
-            lines.append(f'{token.text} {gold_tag} {gold_score} {predicted_tag} {pred_score}\n')
+            lines.append(f'{token.text} {gold_tag} {gold_score} {predicted_tag} {token.get_tag("predicted").score}\n')
           lines.append('\n')
 
         y_true.append(tags_gold)
