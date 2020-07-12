@@ -1,4 +1,5 @@
 from flair.data import Sentence
+from flair.datasets import ColumnDataset
 from flair.models import SequenceTagger
 from flair.data_fetcher import NLPTaskDataFetcher
 import torch
@@ -13,14 +14,9 @@ if __name__ == "__main__":
     argparser.add_argument("--ts")
     argparser.add_argument("--out")
 
-    columns = {0: 'text', 1: 'ner'}
     args = argparser.parse_args()
-    sentences_test = NLPTaskDataFetcher.read_column_data(args.ts, columns)
-
-    for sentence in sentences_test:
-        sentence = sentence
-        sentence.convert_tag_scheme(tag_type="ner", target_scheme='iobes')
-
+    sentences_test = ColumnDataset(path_to_column_file=args.ts, tag_to_bioes="ner", column_name_map={0: "text", 1: "ner"})
+   
     tagger = SequenceTagger.load(args.model)
 
     res = tagger.evaluate(sentences_test, args.out)
