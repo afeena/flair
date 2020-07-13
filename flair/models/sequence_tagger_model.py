@@ -464,12 +464,12 @@ class SequenceTagger(flair.nn.Model):
 
             tags_pred.append(predicted_tag)
             try:
-              gold_score = [x.score for x in token.get_tags_proba_dist("predicted") if x.value == gold_tag][0]
+              gold_score = [x.score for x in token.get_tags_proba_dist("predicted") if x.value == token.get_tag("ner").value][0]
               pred_score = [x.score for x in token.get_tags_proba_dist("predicted") if x.value == predicted_tag][0]
             except IndexError:
               print(gold_tag, token.get_tags_proba_dist("predicted"))
 
-            lines.append(f'{token.text} {gold_tag} {token.get_tags_proba_dist("predicted")} {predicted_tag} {token.get_tag("predicted").score}\n')
+            lines.append(f'{token.text} {gold_tag} {gold_score} {predicted_tag} {token.get_tag("predicted").score}\n')
           lines.append('\n')
 
         y_true.append(tags_gold)
